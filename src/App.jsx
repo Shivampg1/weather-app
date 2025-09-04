@@ -39,6 +39,7 @@ export default function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null);
 
   useEffect(() => {
     if (city.length > 2) {
@@ -64,9 +65,10 @@ export default function App() {
 
   const handleSuggestionClick = (suggestion) => {
     const displayName = suggestion.state 
-      ? `${suggestion.name}, ${suggestion.state}` 
+      ? `${suggestion.name}, ${suggestion.state}, ${suggestion.country}` 
       : `${suggestion.name}, ${suggestion.country}`;
     setCity(displayName);
+    setSelectedSuggestion(suggestion);
     setShowSuggestions(false);
   };
 
@@ -91,7 +93,7 @@ export default function App() {
           if (locationData.length > 0) {
             const location = locationData[0];
             const displayName = location.state 
-              ? `${location.name}, ${location.state}` 
+              ? `${location.name}, ${location.state}, ${location.country}` 
               : `${location.name}, ${location.country}`;
             setCity(displayName);
             fetchWeatherWithCoords(latitude, longitude);
@@ -146,10 +148,15 @@ export default function App() {
   };
 
   const fetchWeather = async () => {
-    // Extract just the city name without state for the API call
-    const cityNameOnly = city.split(',')[0].trim();
+    // If we have a selected suggestion, use its coordinates directly
+    if (selectedSuggestion) {
+      const { lat, lon } = selectedSuggestion;
+      fetchWeatherWithCoords(lat, lon);
+      return;
+    }
     
-    if (!cityNameOnly) return;
+    // Otherwise, try to geocode the city input
+    if (!city) return;
     setLoading(true);
     setError(null);
     setWeather(null);
@@ -158,11 +165,11 @@ export default function App() {
     try {
       // First get coordinates for the city
       const geoResponse = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${cityNameOnly}&limit=1&appid=${import.meta.env.VITE_WEATHER_API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${import.meta.env.VITE_WEATHER_API_KEY}`
       );
       const geoData = await geoResponse.json();
       
-      if (geoData.length === 0) throw new Error("City not found");
+      if (geoData.length === 0) throw new Error("City not found. Try being more specific (e.g., 'City, State, Country').");
       
       const { lat, lon } = geoData[0];
       
@@ -203,9 +210,12 @@ export default function App() {
           <div className="relative">
             <div className="flex gap-2">
               <Input
-                placeholder="Enter city"
+                placeholder="Enter city (e.g., Springfield, IL, US)"
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setSelectedSuggestion(null);
+                }}
                 onKeyPress={(e) => e.key === 'Enter' && fetchWeather()}
                 onFocus={() => city.length > 2 && setShowSuggestions(true)}
               />
