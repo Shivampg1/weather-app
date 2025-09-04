@@ -104,7 +104,7 @@ export default function App() {
         }
       },
       (error) => {
-        setError("Unable to retrieve your location. Please check your location settings.");
+        setError("Unable to retrieve your location");
         console.error("Error getting location:", error);
         setGettingLocation(false);
       }
@@ -123,7 +123,7 @@ export default function App() {
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
       );
       const data = await res.json();
-      if (data.cod !== 200) throw new Error(data.message || "Failed to fetch weather data");
+      if (data.cod !== 200) throw new Error(data.message);
       setWeather(data);
 
       // 5-day forecast
@@ -131,7 +131,7 @@ export default function App() {
         `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
       );
       const forecastData = await resForecast.json();
-      if (forecastData.cod !== "200") throw new Error(forecastData.message || "Failed to fetch forecast data");
+      if (forecastData.cod !== "200") throw new Error(forecastData.message);
 
       // Take 1 forecast per day (at 12:00)
       const daily = forecastData.list.filter((f) =>
@@ -149,11 +149,7 @@ export default function App() {
     // Extract just the city name without state for the API call
     const cityNameOnly = city.split(',')[0].trim();
     
-    if (!cityNameOnly) {
-      setError("Please enter a city name");
-      return;
-    }
-    
+    if (!cityNameOnly) return;
     setLoading(true);
     setError(null);
     setWeather(null);
@@ -166,27 +162,33 @@ export default function App() {
       );
       const geoData = await geoResponse.json();
       
-      if (geoData.length === 0) {
-        // Try a more flexible search if exact match not found
-        const fallbackGeoResponse = await fetch(
-          `https://api.openweathermap.org/geo/1.0/direct?q=${cityNameOnly}&limit=5&appid=${import.meta.env.VITE_WEATHER_API_KEY}`
-        );
-        const fallbackGeoData = await fallbackGeoResponse.json();
-        
-        if (fallbackGeoData.length === 0) {
-          throw new Error(`City "${cityNameOnly}" not found. Please try a nearby larger city.`);
-        }
-        
-        // Use the first result from the broader search
-        const { lat, lon } = fallbackGeoData[0];
-        fetchWeatherWithCoords(lat, lon);
-        return;
-      }
+      if (geoData.length === 0) throw new Error("City not found");
       
       const { lat, lon } = geoData[0];
-      fetchWeatherWithCoords(lat, lon);
+      
+      // Current weather
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
+      );
+      const data = await res.json();
+      if (data.cod !== 200) throw new Error(data.message);
+      setWeather(data);
+
+      // 5-day forecast
+      const resForecast = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
+      );
+      const forecastData = await resForecast.json();
+      if (forecastData.cod !== "200") throw new Error(forecastData.message);
+
+      // Take 1 forecast per day (at 12:00)
+      const daily = forecastData.list.filter((f) =>
+        f.dt_txt.includes("12:00:00")
+      );
+      setForecast(daily);
     } catch (err) {
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -201,12 +203,11 @@ export default function App() {
           <div className="relative">
             <div className="flex gap-2">
               <Input
-                placeholder="Enter city (e.g., Mumbai, London)"
+                placeholder="Enter city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && fetchWeather()}
                 onFocus={() => city.length > 2 && setShowSuggestions(true)}
-                className="flex-1"
               />
               <Button onClick={fetchWeather} disabled={loading}>
                 {loading ? "Loading..." : "Search"}
@@ -226,7 +227,7 @@ export default function App() {
             
             {/* Suggestions dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
                 {suggestions.map((item, index) => (
                   <div
                     key={index}
@@ -243,14 +244,7 @@ export default function App() {
             )}
           </div>
 
-          {error && (
-            <div className="p-3 bg-red-100 border border-red-200 rounded-md">
-              <p className="text-red-700 text-center">{error}</p>
-              <p className="text-red-600 text-sm text-center mt-1">
-                Try entering a nearby larger city or check your spelling.
-              </p>
-            </div>
-          )}
+          {error && <p className="text-center text-red-500">{error}</p>}
 
           {/* Current Weather */}
           {weather && (
