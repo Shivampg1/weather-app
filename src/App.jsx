@@ -2,15 +2,33 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  WiDaySunny, 
-  WiCloudy, 
-  WiRain, 
-  WiSnow, 
-  WiThunderstorm, 
-  WiFog,
-  WiDayCloudy
-} from "react-icons/wi";
+
+// Weather icon component
+const WeatherIcon = ({ condition, size = "text-4xl" }) => {
+  const getIcon = (condition) => {
+    const conditionLower = condition.toLowerCase();
+    
+    if (conditionLower.includes('clear')) {
+      return '☀️'; // Sun icon
+    } else if (conditionLower.includes('cloud')) {
+      return '☁️'; // Cloud icon
+    } else if (conditionLower.includes('rain')) {
+      return '🌧️'; // Rain icon
+    } else if (conditionLower.includes('drizzle')) {
+      return '🌦️'; // Drizzle icon
+    } else if (conditionLower.includes('thunder')) {
+      return '⛈️'; // Thunderstorm icon
+    } else if (conditionLower.includes('snow')) {
+      return '❄️'; // Snow icon
+    } else if (conditionLower.includes('mist') || conditionLower.includes('fog')) {
+      return '🌫️'; // Mist icon
+    } else {
+      return '🌡️'; // Default thermometer icon
+    }
+  };
+
+  return <span className={`${size} inline-block`}>{getIcon(condition)}</span>;
+};
 
 export default function App() {
   const [city, setCity] = useState("");
@@ -18,44 +36,6 @@ export default function App() {
   const [forecast, setForecast] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Function to get appropriate weather icon based on condition
-  const getWeatherIcon = (condition) => {
-    const conditionId = condition.id;
-    const mainCondition = condition.main.toLowerCase();
-    
-    // Clear
-    if (conditionId === 800) return <WiDaySunny className="text-yellow-500 text-4xl" />;
-    
-    // Clouds
-    if (mainCondition.includes("cloud")) {
-      if (conditionId === 801 || conditionId === 802) {
-        return <WiDayCloudy className="text-gray-400 text-4xl" />;
-      }
-      return <WiCloudy className="text-gray-500 text-4xl" />;
-    }
-    
-    // Rain
-    if (mainCondition.includes("rain")) return <WiRain className="text-blue-500 text-4xl" />;
-    
-    // Drizzle
-    if (mainCondition.includes("drizzle")) return <WiRain className="text-blue-400 text-4xl" />;
-    
-    // Thunderstorm
-    if (mainCondition.includes("thunderstorm")) return <WiThunderstorm className="text-purple-600 text-4xl" />;
-    
-    // Snow
-    if (mainCondition.includes("snow")) return <WiSnow className="text-blue-200 text-4xl" />;
-    
-    // Atmosphere (mist, fog, haze, etc.)
-    if (mainCondition.includes("mist") || mainCondition.includes("fog") || 
-        mainCondition.includes("haze") || mainCondition.includes("dust")) {
-      return <WiFog className="text-gray-300 text-4xl" />;
-    }
-    
-    // Default icon
-    return <WiDaySunny className="text-yellow-500 text-4xl" />;
-  };
 
   const fetchWeather = async () => {
     if (!city) return;
@@ -115,38 +95,57 @@ export default function App() {
 
           {/* Current Weather */}
           {weather && (
-            <div className="text-center">
-              <div className="flex justify-center mb-2">
-                {getWeatherIcon(weather.weather[0])}
-              </div>
+            <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold">{weather.name}</h2>
-              <p className="capitalize">{weather.weather[0].description}</p>
-              <p className="text-3xl font-bold">{Math.round(weather.main.temp)}°C</p>
-              <div className="flex justify-center gap-4 mt-2 text-sm">
-                <p>Humidity: {weather.main.humidity}%</p>
-                <p>Wind: {Math.round(weather.wind.speed * 3.6)} km/h</p>
+              <div className="flex justify-center items-center">
+                <WeatherIcon condition={weather.weather[0].main} size="text-6xl" />
+              </div>
+              <p className="capitalize text-lg">{weather.weather[0].description}</p>
+              <p className="text-4xl font-bold">{Math.round(weather.main.temp)}°C</p>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Feels like</p>
+                  <p className="font-semibold">{Math.round(weather.main.feels_like)}°C</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Humidity</p>
+                  <p className="font-semibold">{weather.main.humidity}%</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Wind</p>
+                  <p className="font-semibold">{weather.wind.speed} m/s</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Pressure</p>
+                  <p className="font-semibold">{weather.main.pressure} hPa</p>
+                </div>
               </div>
             </div>
           )}
 
           {/* Forecast */}
           {forecast.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-6">
               <h3 className="text-lg font-semibold text-center mb-3">5-Day Forecast</h3>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 gap-3">
                 {forecast.map((day) => (
-                  <div key={day.dt} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-                    <p className="text-xs font-medium">
-                      {new Date(day.dt_txt).toLocaleDateString("en-US", {
-                        weekday: "short",
-                      })}
-                    </p>
-                    <div className="my-1">
-                      {getWeatherIcon(day.weather[0])}
+                  <Card key={day.dt} className="p-3 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <WeatherIcon condition={day.weather[0].main} />
+                      <div>
+                        <p className="font-medium">
+                          {new Date(day.dt_txt).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric"
+                          })}
+                        </p>
+                        <p className="text-sm capitalize text-gray-600">{day.weather[0].description}</p>
+                      </div>
                     </div>
-                    <p className="text-xs capitalize">{day.weather[0].description}</p>
-                    <p className="text-sm font-bold">{Math.round(day.main.temp)}°C</p>
-                  </div>
+                    <p className="font-bold text-lg">{Math.round(day.main.temp)}°C</p>
+                  </Card>
                 ))}
               </div>
             </div>
