@@ -237,15 +237,15 @@ export default function App() {
   const getGreeting = () => {
     switch(timeOfDay) {
       case 'morning':
-        return 'Good Morning';
+        return { english: 'Good Morning', hindi: 'शुभ प्रभात' };
       case 'afternoon':
-        return 'Good Afternoon';
+        return { english: 'Good Afternoon', hindi: 'दोपहर' };
       case 'evening':
-        return 'Good Evening';
+        return { english: 'Good Evening', hindi: 'संध्या' };
       case 'night':
-        return 'Good Night';
+        return { english: 'Good Night', hindi: 'शुभ रात्रि' };
       default:
-        return 'Hello';
+       return { english: 'Hello', hindi: 'नमस्ते' };
     }
   };
 
