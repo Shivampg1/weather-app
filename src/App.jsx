@@ -233,19 +233,19 @@ export default function App() {
     }
   };
 
-  // Get greeting based on time of day
+  // Get greeting based on time of day in both English and Hindi
   const getGreeting = () => {
     switch(timeOfDay) {
       case 'morning':
         return { english: 'Good Morning', hindi: 'शुभ प्रभात' };
       case 'afternoon':
-        return { english: 'Good Afternoon', hindi: 'दोपहर' };
+        return { english: 'Good Afternoon', hindi: 'नमस्कार' };
       case 'evening':
-        return { english: 'Good Evening', hindi: 'संध्या' };
+        return { english: 'Good Evening', hindi: ' संध्या' };
       case 'night':
         return { english: 'Good Night', hindi: 'शुभ रात्रि' };
       default:
-       return { english: 'Hello', hindi: 'नमस्ते' };
+        return { english: 'Hello', hindi: 'नमस्ते' };
     }
   };
 
@@ -258,9 +258,12 @@ export default function App() {
         <CardContent className="space-y-4">
           {/* Time of day greeting */}
           {weather && (
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <TimeOfDayIcon timeOfDay={timeOfDay} />
-              <p className="text-lg font-medium">{getGreeting()}!</p>
+            <div className="flex flex-col items-center justify-center mb-2">
+              <div className="flex items-center justify-center gap-2">
+                <TimeOfDayIcon timeOfDay={timeOfDay} />
+                <p className="text-lg font-medium">{getGreeting().english}!</p>
+              </div>
+              <p className="text-sm text-gray-700 mt-1">{getGreeting().hindi}!</p>
             </div>
           )}
           
