@@ -378,7 +378,7 @@ export default function App() {
           <div className="relative">
             <div className="flex gap-2">
               <Input
-                placeholder="गाँव/शहर दर्ज करें / Enter village/city"
+                placeholder="गाँव/शहर/Enter village/city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && fetchWeather()}
