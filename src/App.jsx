@@ -60,6 +60,125 @@ const getTimeOfDay = () => {
   return 'night';
 };
 
+// Farming Advisory Component
+const FarmingAdvisory = ({ weatherData }) => {
+  if (!weatherData) return null;
+  
+  const temp = weatherData.main.temp;
+  const humidity = weatherData.main.humidity;
+  const windSpeed = weatherData.wind.speed;
+  const rain = weatherData.weather[0].main.toLowerCase().includes('rain');
+  const description = weatherData.weather[0].description.toLowerCase();
+  
+  let advice = "";
+  let icon = "🌱";
+  
+  if (rain || description.includes('rain')) {
+    advice = "⚠️ Rainfall expected - Good for natural irrigation but avoid field work and spraying";
+    icon = "🌧️";
+  } else if (temp > 35) {
+    advice = "🌡️ Very hot conditions - Water crops in early morning or late evening";
+    icon = "🔥";
+  } else if (temp > 30 && humidity < 40) {
+    advice = "🌡️ High temperature, low humidity - Consider irrigation for moisture-sensitive crops";
+    icon = "💧";
+  } else if (temp < 5) {
+    advice = "❄️ Cold conditions - Protect sensitive crops and seedlings from frost damage";
+    icon = "❄️";
+  } else if (windSpeed > 6) {
+    advice = "💨 Windy conditions - Not suitable for spraying chemicals. Secure loose items.";
+    icon = "💨";
+  } else if (temp >= 20 && temp <= 30 && humidity >= 50 && humidity <= 80) {
+    advice = "✅ Excellent conditions for most farming activities - Good for planting and growth";
+    icon = "✅";
+  } else {
+    advice = "🌾 Favorable conditions for most farming activities";
+    icon = "🌾";
+  }
+  
+  return (
+    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">{icon}</span>
+        <h4 className="font-semibold text-yellow-800">कृषि सलाह / Farming Advisory</h4>
+      </div>
+      <p className="text-yellow-700 mt-1">{advice}</p>
+    </div>
+  );
+};
+
+// Soil Moisture Indicator Component
+const SoilMoistureIndicator = ({ weatherData }) => {
+  if (!weatherData) return null;
+  
+  const rain = weatherData.weather[0].main.toLowerCase().includes('rain');
+  const humidity = weatherData.main.humidity;
+  const temp = weatherData.main.temp;
+  
+  let moistureLevel = "Moderate";
+  let moistureClass = "bg-blue-100 text-blue-800";
+  let moistureIcon = "💧";
+  
+  if (rain || humidity > 80) {
+    moistureLevel = "High (Waterlogged)";
+    moistureClass = "bg-green-100 text-green-800";
+    moistureIcon = "🌊";
+  } else if (humidity < 30 || temp > 32) {
+    moistureLevel = "Low (Dry)";
+    moistureClass = "bg-red-100 text-red-800";
+    moistureIcon = "🏜️";
+  }
+  
+  return (
+    <div className={`p-3 rounded-lg text-center ${moistureClass}`}>
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-xl">{moistureIcon}</span>
+        <p className="font-medium">मिट्टी की नमी / Soil Moisture: {moistureLevel}</p>
+      </div>
+    </div>
+  );
+};
+
+// 7-Day Forecast Component for Farmers
+const FarmForecast = ({ forecast }) => {
+  if (!forecast || forecast.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-lg font-semibold text-center mb-3">7-Day Farm Forecast</h3>
+      <div className="grid grid-cols-1 gap-3">
+        {forecast.map((day) => {
+          const date = new Date(day.dt_txt);
+          const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
+          const isWeekend = dayOfWeek === 'Sat' || dayOfWeek === 'Sun';
+          
+          return (
+            <Card key={day.dt} className={`p-3 flex items-center justify-between ${isWeekend ? 'bg-blue-50' : ''}`}>
+              <div className="flex items-center space-x-4">
+                <WeatherIcon condition={day.weather[0].main} />
+                <div>
+                  <p className="font-medium">
+                    {dayOfWeek}, {date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric"
+                    })}
+                  </p>
+                  <p className="text-sm capitalize text-gray-600">{day.weather[0].description}</p>
+                  <p className="text-xs text-gray-500">Humidity: {day.main.humidity}%</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-lg">{Math.round(day.main.temp)}°C</p>
+                <p className="text-sm text-gray-600">Feels: {Math.round(day.main.feels_like)}°C</p>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
@@ -75,7 +194,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeOfDay(getTimeOfDay());
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -122,7 +241,6 @@ export default function App() {
         try {
           const { latitude, longitude } = position.coords;
           
-          // Get city name from coordinates
           const response = await fetch(
             `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${import.meta.env.VITE_WEATHER_API_KEY}`
           );
@@ -166,17 +284,15 @@ export default function App() {
       if (data.cod !== 200) throw new Error(data.message);
       setWeather(data);
 
-      // 5-day forecast
+      // 7-day forecast (changed from 5-day)
       const resForecast = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
       );
       const forecastData = await resForecast.json();
       if (forecastData.cod !== "200") throw new Error(forecastData.message);
 
-      // Take 1 forecast per day (at 12:00)
-      const daily = forecastData.list.filter((f) =>
-        f.dt_txt.includes("12:00:00")
-      );
+      // Get 7 days forecast (one reading per day)
+      const daily = forecastData.list.filter((f, index) => index % 8 === 0).slice(0, 7);
       setForecast(daily);
     } catch (err) {
       setError(err.message);
@@ -186,7 +302,6 @@ export default function App() {
   };
 
   const fetchWeather = async () => {
-    // Extract just the city name without state for the API call
     const cityNameOnly = city.split(',')[0].trim();
     
     if (!cityNameOnly) return;
@@ -196,7 +311,6 @@ export default function App() {
     setForecast([]);
 
     try {
-      // First get coordinates for the city
       const geoResponse = await fetch(
         `https://api.openweathermap.org/geo/1.0/direct?q=${cityNameOnly}&limit=1&appid=${import.meta.env.VITE_WEATHER_API_KEY}`
       );
@@ -206,7 +320,6 @@ export default function App() {
       
       const { lat, lon } = geoData[0];
       
-      // Current weather
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
       );
@@ -214,17 +327,13 @@ export default function App() {
       if (data.cod !== 200) throw new Error(data.message);
       setWeather(data);
 
-      // 5-day forecast
       const resForecast = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_WEATHER_API_KEY}&units=metric`
       );
       const forecastData = await resForecast.json();
       if (forecastData.cod !== "200") throw new Error(forecastData.message);
 
-      // Take 1 forecast per day (at 12:00)
-      const daily = forecastData.list.filter((f) =>
-        f.dt_txt.includes("12:00:00")
-      );
+      const daily = forecastData.list.filter((f, index) => index % 8 === 0).slice(0, 7);
       setForecast(daily);
     } catch (err) {
       setError(err.message);
@@ -233,7 +342,6 @@ export default function App() {
     }
   };
 
-  // Get greeting based on time of day in both English and Hindi
   const getGreeting = () => {
     switch(timeOfDay) {
       case 'morning':
@@ -241,7 +349,7 @@ export default function App() {
       case 'afternoon':
         return { english: 'Good Afternoon', hindi: 'नमस्कार' };
       case 'evening':
-        return { english: 'Good Evening', hindi: ' संध्या' };
+        return { english: 'Good Evening', hindi: 'शुभ संध्या' };
       case 'night':
         return { english: 'Good Night', hindi: 'शुभ रात्रि' };
       default:
@@ -253,7 +361,7 @@ export default function App() {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-indigo-500 p-6">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">Weather App</CardTitle>
+          <CardTitle className="text-center text-2xl">किसान मौसम ऐप / Farmer Weather App</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Time of day greeting */}
@@ -270,7 +378,7 @@ export default function App() {
           <div className="relative">
             <div className="flex gap-2">
               <Input
-                placeholder="Enter city"
+                placeholder="गाँव/शहर दर्ज करें / Enter village/city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && fetchWeather()}
@@ -288,11 +396,10 @@ export default function App() {
                 variant="outline"
                 className="w-full"
               >
-                {gettingLocation ? "Detecting Location..." : "Use My Current Location"}
+                {gettingLocation ? "Detecting Location..." : "मेरा स्थान Use My Location"}
               </Button>
             </div>
             
-            {/* Suggestions dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
                 {suggestions.map((item, index) => (
@@ -341,34 +448,16 @@ export default function App() {
                   <p className="font-semibold">{weather.main.pressure} hPa</p>
                 </div>
               </div>
+
+              {/* Farming Features */}
+              <SoilMoistureIndicator weatherData={weather} />
+              <FarmingAdvisory weatherData={weather} />
             </div>
           )}
 
           {/* Forecast */}
           {forecast.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-center mb-3">5-Day Forecast</h3>
-              <div className="grid grid-cols-1 gap-3">
-                {forecast.map((day) => (
-                  <Card key={day.dt} className="p-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <WeatherIcon condition={day.weather[0].main} />
-                      <div>
-                        <p className="font-medium">
-                          {new Date(day.dt_txt).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric"
-                          })}
-                        </p>
-                        <p className="text-sm capitalize text-gray-600">{day.weather[0].description}</p>
-                      </div>
-                    </div>
-                    <p className="font-bold text-lg">{Math.round(day.main.temp)}°C</p>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            <FarmForecast forecast={forecast} />
           )}
         </CardContent>
       </Card>
