@@ -30,6 +30,36 @@ const WeatherIcon = ({ condition, size = "text-4xl" }) => {
   return <span className={`${size} inline-block`}>{getIcon(condition)}</span>;
 };
 
+// Time of day component
+const TimeOfDayIcon = ({ timeOfDay, size = "text-2xl" }) => {
+  const getTimeIcon = (time) => {
+    switch(time) {
+      case 'morning':
+        return '🌅'; // Sunrise
+      case 'afternoon':
+        return '☀️'; // Sun
+      case 'evening':
+        return '🌇'; // Sunset
+      case 'night':
+        return '🌙'; // Moon
+      default:
+        return '🕒'; // Clock
+    }
+  };
+
+  return <span className={`${size} inline-block`}>{getTimeIcon(timeOfDay)}</span>;
+};
+
+// Function to get time of day
+const getTimeOfDay = () => {
+  const hour = new Date().getHours();
+  
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+};
+
 export default function App() {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
@@ -39,6 +69,16 @@ export default function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+
+  // Update time of day every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeOfDay(getTimeOfDay());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (city.length > 2) {
@@ -193,6 +233,22 @@ export default function App() {
     }
   };
 
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    switch(timeOfDay) {
+      case 'morning':
+        return 'Good Morning';
+      case 'afternoon':
+        return 'Good Afternoon';
+      case 'evening':
+        return 'Good Evening';
+      case 'night':
+        return 'Good Night';
+      default:
+        return 'Hello';
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-indigo-500 p-6">
       <Card className="w-full max-w-md shadow-lg">
@@ -200,6 +256,14 @@ export default function App() {
           <CardTitle className="text-center text-2xl">Weather App</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Time of day greeting */}
+          {weather && (
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <TimeOfDayIcon timeOfDay={timeOfDay} />
+              <p className="text-lg font-medium">{getGreeting()}!</p>
+            </div>
+          )}
+          
           <div className="relative">
             <div className="flex gap-2">
               <Input
