@@ -2,10 +2,13 @@
   "name": "chat_bot",
   "version": "1.0.0",
   "private": true,
+  "homepage": "https://shivampg1.github.io/weather-app",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
